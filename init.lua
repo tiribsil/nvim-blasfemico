@@ -339,55 +339,105 @@ require("lazy").setup({
         end,
     },
   },
-
   -- [[ Fuzzy Finder (Telescope) ]]
-  {
-    "nvim-telescope/telescope.nvim",
-    tag = "0.1.6",
-    dependencies = { "nvim-lua/plenary.nvim" },
-    config = function()
-        local telescope = require("telescope")
-        telescope.setup({
-            defaults = {
-                borderchars = { " ", " ", " ", " ", " ", " ", " ", " " },
-                prompt_prefix = "  ",
-                selection_caret = "  ",
+      {
+            "nvim-telescope/telescope.nvim",
+            tag = "0.1.6",
+            dependencies = {
+              "nvim-lua/plenary.nvim",
+              "nvim-telescope/telescope-file-browser.nvim",
             },
-        })
-      local builtin = require("telescope.builtin")
-      map("n", "<C-p>", builtin.find_files, { desc = "Find Files" })
-      map("i", "<C-p>", "<ESC><CMD>Telescope find_files<CR>", { desc = "Find Files" })
-      map("n", "<C-S-p>", builtin.commands, { desc = "Command Palette" })
-      map("i", "<C-S-p>", "<ESC><CMD>Telescope commands<CR>", { desc = "Command Palette" })
-    end,
-  },
+            config = function()
+                  local telescope = require("telescope")
+          local actions = require("telescope.actions")
 
-  -- [[ File Explorer ]]
-  {
-    "nvim-neo-tree/neo-tree.nvim",
-    branch = "v3.x",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-tree/nvim-web-devicons",
-      "MunifTanjim/nui.nvim",
-    },
-    config = function()
-      require("neo-tree").setup({
-        close_if_last_window = true,
-        window = { mappings = { ["<space>"] = "none", ["<cr>"] = "open", o = "open" } },
-        filesystem = { follow_current_file = true, hijack_netrw_behavior = "open_current" },
-        event_handlers = {
-          {
-            event = "file_opened",
-            handler = function()
-              require("neo-tree.command").execute({ action = "close" })
-            end,
+          -- This function defines the new behavior for the Enter key.
+          local function select_and_start_insert(prompt_bufnr)
+            -- Use the default action to select and open the file. This also closes Telescope.
+            actions.select_default(prompt_bufnr)
+            -- Defer starting insert mode to ensure it happens after the file is loaded.
+            vim.defer_fn(function()
+                  vim.cmd.startinsert()
+            end, 1)
+          end
+
+          telescope.setup({
+                defaults = {
+                      borderchars = { " ", " ", " ", " ", " ", " ", " ", " " },
+                      prompt_prefix = "  ",
+                      selection_caret = "  ",
+                      mappings = {
+                    i = {
+                                   ["<Esc>"] = function(prompt_bufnr)
+                                                actions.close(prompt_bufnr)
+                                                vim.defer_fn(function()
+                                                  vim.cmd.startinsert()
+                                                end, 10)
+                                              end,
+                    -- Map Enter to the new custom function.
+                      ["<CR>"] = select_and_start_insert,
+                    },
+                    n = {
+                      ["<CR>"] = select_and_start_insert,
+                    },
+                  },
+                    },
+                extensions = {
+                      file_browser = {
+                    hidden = true,
+                    grouped = true,
+                  },
+                    },
+              })
+          telescope.load_extension("file_browser")
+
+          local builtin = require("telescope.builtin")
+
+          local function browse_files_in_current_dir()
+            require("telescope").extensions.file_browser.file_browser({
+                  path = vim.fn.expand("%:p:h") or vim.fn.getcwd(),
+                })
+          end
+
+          map("n", "<C-o>", browse_files_in_current_dir, { desc = "Browse files in current dir" })
+          map("i", "<C-o>", function()
+                vim.cmd.stopinsert()
+            browse_files_in_current_dir()
+          end, { desc = "Browse files in current dir" })
+
+          map("n", "<C-S-p>", builtin.commands, { desc = "Command Palette" })
+          map("i", "<C-S-p>", "<ESC><CMD>Telescope commands<CR>", { desc = "Command Palette" })
+        end,
           },
-        },
-      })
-      map("n", "<C-o>", "<CMD>Neotree toggle<CR>", { desc = "Toggle File Explorer" })
-      map("i", "<C-o>", "<ESC><CMD>Neotree toggle<CR>", { desc = "Toggle File Explorer" })
-    end,
+
+      -- [[ File Explorer ]]
+      {
+            "nvim-neo-tree/neo-tree.nvim",
+            branch = "v3.x",
+            dependencies = {
+              "nvim-lua/plenary.nvim",
+              "nvim-tree/nvim-web-devicons",
+              "MunifTanjim/nui.nvim",
+            },
+            config = function()
+                  require("neo-tree").setup({
+                close_if_last_window = true,
+                window = { mappings = { ["<space>"] = "none", ["<cr>"] = "open", o = "open" } },
+                filesystem = { follow_current_file = true, hijack_netrw_behavior = "open_current" },
+                event_handlers = {
+                      {
+                    event = "file_opened",
+                    handler = function()
+                          require("neo-tree.command").execute({ action = "close" })
+                end,
+                  },
+                    },
+              })
+          -- The original <C-o> mapping is removed.
+          -- You can optionally map Neotree to a different key, for example <C-e>:
+          -- map("n", "<C-e>", "<CMD>Neotree toggle<CR>", { desc = "Toggle File Explorer" })
+          -- map("i", "<C-e>", "<ESC><CMD>Neotree toggle<CR>", { desc = "Toggle File Explorer" })
+        end,
   },
 
   -- [[ LSP & Autocompletion ]]
@@ -459,7 +509,7 @@ map("i", "<S-Tab>", "<C-p>", { desc = "Cycle previous word completion" })
 vim.cmd.colorscheme("tokyonight")
 
 -- Step 5: Make it Default to Insert Mode
-vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile", "VimEnter" }, {
   pattern = "*",
   command = "startinsert",
 })
