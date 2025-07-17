@@ -94,7 +94,7 @@ map("c", "<M-x>", "<C-c>", { desc = "Exit Command Mode to Insert Mode" })
 map("i", "<C-Down>", "<C-o>}", { desc = "Go to next empty line" })
 map("i", "<C-Up>", "<C-o>{", { desc = "Go to previous empty line" })
 
-map("i", "<C-f>", "<C-o>?", { desc = "Reverse incremental search" })
+map("i", "<C-f>", "<C-o>/", { desc = "Incremental search" })
 
 map("i", "<C-BS>", "<C-w>", { desc = "Delete word backwards" })
 map("i", "<C-Del>", "<C-o>dw", { desc = "Delete word forwards" })
@@ -158,7 +158,7 @@ function _G.set_marker_at_cursor()
       local line_content = vim.api.nvim_get_current_line()
       local opts = {}
 
-      if #line_content == 0 then
+      if #line_content == 0 or pos[2] >= #line_content then
             opts.virt_text = {{' ', 'MarkerHighlight'}}
         opts.virt_text_pos = 'overlay'
       else
@@ -188,7 +188,7 @@ map("i", "<C-m>", function()
       local line_content = vim.api.nvim_buf_get_lines(0, current_pos[1] - 1, current_pos[1], false)[1] or ""
       local opts = {}
 
-      if #line_content == 0 then
+      if #line_content == 0 or current_pos[2] >= #line_content then
             opts.virt_text = {{' ', 'MarkerHighlight'}}
         opts.virt_text_pos = 'overlay'
       else
