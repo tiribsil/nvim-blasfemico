@@ -22,10 +22,11 @@ vim.opt.virtualedit = "block"
 
 -- [[ Basic Editor Settings ]]
 vim.opt.number = true
-vim.opt.mouse = "a"
+vim.opt.mouse = "nic"
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.wrap = true
+vim.opt.linebreak = true
 vim.opt.scrolloff = 8
 vim.opt.sidescrolloff = 8
 vim.opt.whichwrap = "b,s,h,l,<,>,[,]"
@@ -64,27 +65,32 @@ local function confirm_quit()
 end
 
 map("i", "<Esc>", confirm_quit, { noremap = true, silent = true, desc = "Confirm and quit" })
-map("i", "jk", "<ESC>", { desc = "Exit insert mode with jk" })
 map("i", "<C-s>", "<ESC>:w<CR>a", { desc = "Save File" })
 map("i", "<C-q>", "<ESC>:q!<CR>", { desc = "Quit" })
 map("i", "<C-z>", "<ESC>ua", { desc = "Undo" })
 map("i", "<C-y>", "<ESC><C-r>a", { desc = "Redo" })
 
+-- Visual line navigation for wrapped lines
+map({"n", "v"}, "j", "gj", { desc = "Move down by visual line" })
+map({"n", "v"}, "k", "gk", { desc = "Move up by visual line" })
+map({"n", "v"}, "<Down>", "gj", { desc = "Move down by visual line" })
+map({"n", "v"}, "<Up>", "gk", { desc = "Move up by visual line" })
+
 map("i", "<Up>", function()
   if vim.fn.line(".") == 1 then
     return "<C-o>0"
   else
-    return "<Up>"
+    return "<C-o>gk"
   end
-end, { expr = true, desc = "Move to beginning of line if on first line" })
+end, { expr = true, desc = "Move up by visual line, or to beginning of first line" })
 
 map("i", "<Down>", function()
   if vim.fn.line(".") == vim.fn.line("$") then
     return "<C-o>$"
   else
-    return "<Down>"
+    return "<C-o>gj"
   end
-end, { expr = true, desc = "Move to end of line if on last line" })
+end, { expr = true, desc = "Move down by visual line, or to end of last line" })
 
 map("n", "<M-x>", ":", { desc = "Enter Command Mode" })
 map("i", "<M-x>", "<C-o>:", { desc = "Enter Command Mode (from Insert Mode)" })
@@ -171,6 +177,13 @@ end
 
 -- Set marker at current cursor position
 map("i", "<C-space>", "<Cmd>lua _G.set_marker_at_cursor()<CR>", { desc = "Set marker" })
+
+map({"i", "n"}, "<LeftDrag>", "", { noremap = true, silent = true })
+map({"i", "n"}, "<RightDrag>", "", { noremap = true, silent = true })
+
+-- Disable visual mode on drag by remapping it to a simple cursor move
+map("i", "<LeftDrag>", "<LeftMouse>")
+map("i", "<RightDrag>", "<RightMouse>")
 
 -- Move cursor and set marker on click
 map("i", "<LeftMouse>", "<LeftMouse><Cmd>lua _G.set_marker_at_cursor()<CR>", { desc = "Move cursor and set marker on click" })
