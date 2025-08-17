@@ -264,6 +264,9 @@ local function replace_in_region()
       local start_pos, end_pos = get_ordered_region()
       if not start_pos then return end
 
+      -- Save marker position before making changes
+      local marker_pos_before = vim.api.nvim_buf_get_extmark_by_id(0, marker_ns, vim.b.marker_extmark_id, {})
+
       local lines = vim.api.nvim_buf_get_text(0, start_pos[1] - 1, start_pos[2], end_pos[1] - 1, end_pos[2], {})
       local text_in_region = table.concat(lines, '\n')
 
@@ -273,6 +276,22 @@ local function replace_in_region()
       local new_lines = vim.split(new_text, '\n', { plain = true })
 
       vim.api.nvim_buf_set_text(0, start_pos[1] - 1, start_pos[2], end_pos[1] - 1, end_pos[2], new_lines)
+
+      -- Restore the marker to its original position
+      if marker_pos_before then
+        clear_marker_if_exists()
+        local line_content = vim.api.nvim_buf_get_lines(0, marker_pos_before[1], marker_pos_before[1] + 1, false)[1] or ""
+        local opts = {}
+
+        if #line_content == 0 or marker_pos_before[2] >= #line_content then
+            opts.virt_text = {{' ', 'MarkerHighlight'}}
+            opts.virt_text_pos = 'overlay'
+        else
+            opts.hl_group = 'MarkerHighlight'
+            opts.end_col = marker_pos_before[2] + 1
+        end
+        vim.b.marker_extmark_id = vim.api.nvim_buf_set_extmark(0, marker_ns, marker_pos_before[1], marker_pos_before[2], opts)
+      end
 
       print(count .. " replacements made.")
 end
